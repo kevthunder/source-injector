@@ -1,0 +1,19 @@
+{
+    "name": "kevthunder/source-injector",
+    "description": "Helper to add code in a file. Useful to make code Generators.",
+    "require-dev": {
+        "phpunit/phpunit": "^4.8"
+    },
+    "authors": [
+        {
+            "name": "Kevin Giguere",
+            "email": "kev.giguere.l@gmail.com"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Kevthunder\\SourceInjector\\": "src/"
+        }
+    }
+}
