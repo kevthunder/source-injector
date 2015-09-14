@@ -366,8 +366,8 @@ class StackTest extends PHPUnit_Framework_TestCase
         $injector->insertAt($insert,$pos,true);
         $this->assertFileNotEquals($this->files_source.'/Foo.php',$this->files_tmp.'/Foo.php');
         $newContent = file_get_contents($this->files_tmp.'/Foo.php');
-        $insert = "// Lorem Ipsum\n    // Dolor\n";
-        $this->assertEquals($insert,substr($newContent,$pos,strlen($insert)));
+        $expect = "// Lorem Ipsum\n    // Dolor\n";
+        $this->assertEquals($expect,substr($newContent,$pos,strlen($expect)));
 
         $this->resetTestFiles();
 
@@ -378,8 +378,28 @@ class StackTest extends PHPUnit_Framework_TestCase
         $injector->insertAt($insert,$pos,true);
         $this->assertFileNotEquals($this->files_source.'/Foo.php',$this->files_tmp.'/Foo.php');
         $newContent = file_get_contents($this->files_tmp.'/Foo.php');
-        $insert = "        // Lorem Ipsum\n        // Dolor";
-        $this->assertEquals($insert,substr($newContent,$pos,strlen($insert)));
+        $expect = "        // Lorem Ipsum\n        // Dolor";
+        $this->assertEquals($expect,substr($newContent,$pos,strlen($expect)));
+
+        $this->resetTestFiles();
+
+        $find = "'bar' => 'Bar',";
+        $pos = strpos($originalContent,$find)+strlen($find)+1;
+        $injector = new Injector($this->files_tmp.'/Foo.php');
+        $insert = "'test1' => 'Test 1',\n'test2' => 'Test 2',\n";
+        $injector->insertAt($insert,$pos,true);
+        $expect = 'public $data = array('."\n".
+            "        'foo' => 'Foo',\n".
+            "        'bar' => 'Bar',\n".
+            "        'test1' => 'Test 1',\n".
+            "        'test2' => 'Test 2',\n".
+            "        'foo_bar' => 'Foo bar'\n".
+            "    );";
+        $this->assertFileNotEquals($this->files_source.'/Foo.php',$this->files_tmp.'/Foo.php');
+        $newContent = file_get_contents($this->files_tmp.'/Foo.php');
+        $start = strpos($newContent,'public $data = array(');
+        $end = strpos($newContent,');',$start)+2;
+        $this->assertEquals($expect,substr($newContent,$start,$end-$start));
     }
 
     public function testPrepend(){

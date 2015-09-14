@@ -5,14 +5,14 @@ namespace Kevthunder\SourceInjector;
 
 class Foo{
 
-	
-	public $data = array(
-		'foo' => 'Foo',
-		'bar' => 'Bar',
-		'foo_bar' => 'Foo bar'
-	);
-	
-	public $param;
+
+    public $data = array(
+        'foo' => 'Foo',
+        'bar' => 'Bar',
+        'foo_bar' => 'Foo bar'
+    );
+
+    public $param;
 
     /**
      *

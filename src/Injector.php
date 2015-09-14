@@ -217,7 +217,7 @@ class Injector{
     public function applyIndentOf($content,$pos){
         $onNewLine = $this->getContentAt($pos-1,$pos) == "\n";
         $indent = $this->getIndentAt($pos);
-        $content = str_replace("\n","\n".$indent,$content);
+        $content = preg_replace('/\n(.)/',"\n$indent$1",$content);
         if($onNewLine){
             $content = $indent . $content;
         }
