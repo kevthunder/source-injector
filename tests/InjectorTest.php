@@ -180,6 +180,28 @@ class StackTest extends PHPUnit_Framework_TestCase
         $this->assertTrue($copy->failed());
     }
 
+    public function testBeforeFind(){
+        $originalContent = file_get_contents($this->files_source.'/Foo.php');
+
+        $injector = new Injector($this->files_tmp.'/Foo.php');
+        $find = 'public function hello';
+        $copy = $injector->beforeFind($find);
+        $this->assertFalse($copy->failed());
+        $pos = strpos($originalContent,$find);
+        $this->assertEquals($pos, $copy->getEnd());
+
+        $injector = new Injector($this->files_tmp.'/Foo.php',$pos,-1);
+        $find = 'public function';
+        $copy = $injector->beforeFind($find);
+        $this->assertFalse($copy->failed());
+        $this->assertEquals(strpos($originalContent,$find,$pos), $copy->getEnd());
+
+        $injector = new Injector($this->files_tmp.'/Foo.php');
+        $find = 'non-existing text';
+        $copy = $injector->beforeFind($find);
+        $this->assertTrue($copy->failed());
+    }
+
     public function testAfterFindLast(){
         $originalContent = file_get_contents($this->files_source.'/Foo.php');
 

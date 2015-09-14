@@ -108,6 +108,15 @@ class Injector{
         }
     }
 
+    public function beforeFind($needle){
+        $pos = strpos($this->getContent(),$needle);
+        if($pos !== false){
+            return $this->copy(null,$this->start + $pos);
+        }else{
+            return new FailedInjector($this->fileName);
+        }
+    }
+
     public function afterFindLast($needle){
         $pos = strrpos($this->getContent(),$needle);
         if($pos !== false){
