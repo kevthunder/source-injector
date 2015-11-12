@@ -150,6 +150,27 @@ class Injector{
         }
     }
 
+    public function aroundFind($content, $ignoreIndent = true){
+        if($ignoreIndent){
+            return $this->aroundPregFind($this->getIgnoreIndentPreg($content));
+        }else{
+            $pos = strpos($this->getContent(),$content);
+            if($pos !== false) {
+                return $this->copy($this->start + $pos,$this->start + $pos + strlen($content));
+            }else{
+                return new FailedInjector($this->fileName);
+            }
+        }
+    }
+
+    public function aroundPregFind($pattern){
+        if(preg_match($pattern, $this->getContent(), $matches, PREG_OFFSET_CAPTURE)){
+            return $this->copy($this->start + $matches[0][1],$this->start + $matches[0][1] + strlen($matches[0][0]));
+        }else{
+            return new FailedInjector($this->fileName);
+        }
+    }
+
     public function prepend($content, $applyIndent = true)
     {
         return $this->insertAt($content,$this->start, $applyIndent);
@@ -180,20 +201,34 @@ class Injector{
 
     public function insertAt($content, $pos, $applyIndent = true)
     {
+        return $this->replaceSegment($content, $pos, $pos, $applyIndent);
+    }
+
+    public function replace($content, $applyIndent = true)
+    {
+        return $this->replaceSegment($content, $this->start, $this->getAbsEnd(), $applyIndent);
+    }
+    
+    
+    public function replaceSegment($content, $start, $end, $applyIndent = true){
         if($applyIndent){
-            $content = $this->applyIndentOf($content,$pos);
+            $content = $this->applyIndentOf($content,$start);
         }
         $all = file_get_contents($this->fileName);
-        file_put_contents($this->fileName,substr($all,0,$pos).$content.substr($all,$pos));
-        return $this->copy(null,$this->end + strlen($content));
+        file_put_contents($this->fileName,substr($all,0,$start).$content.substr($all,$end));
+        return $this->copy(null,$this->end + strlen($content) - $end + $start);
     }
 
     public function contains($content, $ignoreIndent = true){
         if($ignoreIndent){
-            return (bool)preg_match('/'.preg_replace('/\s*\n\s*/','\s*',preg_quote($content,'/')).'/',$this->getContent());
+            return (bool)preg_match($this->getIgnoreIndentPreg($content),$this->getContent());
         }else{
             return strpos($this->getContent(),$content) !== false;
         }
+    }
+    
+    protected function getIgnoreIndentPreg($content){
+        return '/'.preg_replace('/\s*\n\s*/','\s*',preg_quote($content,'/')).'/';
     }
 
     public function getIndentAtStart(){

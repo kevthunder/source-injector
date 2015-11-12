@@ -276,6 +276,71 @@ class StackTest extends PHPUnit_Framework_TestCase
         $this->assertTrue($copy->failed());
     }
 
+
+    public function testAroundPregFind(){
+        $originalContent = file_get_contents($this->files_source.'/Foo.php');
+        
+        $find = '/public function bar\([^)]*\)/';
+        preg_match($find, $originalContent, $matches, PREG_OFFSET_CAPTURE);
+        $start = $matches[0][1];
+        $end = $matches[0][1] + strlen($matches[0][0]);
+
+        $injector = new Injector($this->files_tmp.'/Foo.php');
+        $copy = $injector->aroundPregFind($find);
+        $this->assertEquals($start, $copy->getStart());
+        $this->assertEquals($end, $copy->getEnd());
+        
+        $injector = new Injector($this->files_tmp.'/Foo.php',5);
+        $copy = $injector->aroundPregFind($find);
+        $this->assertEquals($start, $copy->getStart());
+        $this->assertEquals($end, $copy->getEnd());
+
+        $injector = new Injector($this->files_tmp.'/Foo.php',5,$start);
+        $copy = $injector->aroundPregFind($find);
+        $this->assertTrue($copy->failed());
+        
+        $injector = new Injector($this->files_tmp.'/Foo.php');
+        $copy = $injector->aroundPregFind('/non-existing\s*text/');
+        $this->assertTrue($copy->failed());
+    }
+
+    public function testAroundFind(){
+        
+        $originalContent = file_get_contents($this->files_source.'/Foo.php');
+        $find = 'public function hello()';
+        $start = strrpos($originalContent,$find);
+        $end = $start+strlen($find);
+
+        $injector = new Injector($this->files_tmp.'/Foo.php');
+        $copy = $injector->aroundFind($find,false);
+        $this->assertEquals($start, $copy->getStart());
+        $this->assertEquals($end, $copy->getEnd());
+
+        $injector = new Injector($this->files_tmp.'/Foo.php',5,$start);
+        $copy = $injector->aroundFind($find,false);
+        $this->assertTrue($copy->failed());
+
+        $injector = new Injector($this->files_tmp.'/Foo.php');
+        $copy = $injector->aroundFind('non-existing text',false);
+        $this->assertTrue($copy->failed());
+        
+        $find = "public function hello(){\nreturn 'Hello, world!';\n}";
+        preg_match('/public function hello\(\)\{[^}]*\}/', $originalContent, $matches, PREG_OFFSET_CAPTURE);
+        $start = $matches[0][1];
+        $end = $matches[0][1] + strlen($matches[0][0]);
+
+        $injector = new Injector($this->files_tmp.'/Foo.php');
+        $copy = $injector->aroundFind($find,false);
+        $this->assertTrue($copy->failed());
+
+        $injector = new Injector($this->files_tmp.'/Foo.php');
+        $copy = $injector->aroundFind($find,true);
+        $this->assertEquals($start, $copy->getStart());
+        $this->assertEquals($end, $copy->getEnd());
+        
+    }
+    
+    
     public function testIndentAt(){
         $originalContent = file_get_contents($this->files_source.'/Foo.php');
         $injector = new Injector($this->files_tmp.'/Foo.php');
@@ -313,6 +378,38 @@ class StackTest extends PHPUnit_Framework_TestCase
         $pos = strpos($originalContent,$find)+strlen($find)+1;
         $insert = "// Lorem Ipsum\n// Dolor";
         $this->assertEquals("        // Lorem Ipsum\n        // Dolor",$injector->applyIndentOf($insert,$pos));
+    }
+    
+    public function testReplaceSegment(){
+        $originalContent = file_get_contents($this->files_source.'/Foo.php');
+
+        preg_match('/public function hello\(\)\{[^}]*\}/', $originalContent, $matches, PREG_OFFSET_CAPTURE);
+        $start = $matches[0][1];
+        $end = $matches[0][1] + strlen($matches[0][0]);
+
+        $injector = new Injector($this->files_tmp.'/Foo.php');
+        $insert = 'Lorem Ipsum';
+        $injector->replaceSegment($insert,$start,$end,false);
+        $newContent = file_get_contents($this->files_tmp.'/Foo.php');
+        $this->assertEquals(substr($originalContent,0,$start).$insert.substr($originalContent,$end),$newContent);
+
+        $this->resetTestFiles();
+
+        $injector = new Injector($this->files_tmp.'/Foo.php');
+        $insert = "public function test(){\n    return true;\n}";
+        $injector->replaceSegment($insert,$start,$end,false);
+        $newContent = file_get_contents($this->files_tmp.'/Foo.php');
+        $this->assertEquals(substr($originalContent,0,$start).$insert.substr($originalContent,$end),$newContent);
+
+        $this->resetTestFiles();
+
+        $injector = new Injector($this->files_tmp.'/Foo.php');
+        $insert = "public function test(){\n    return true;\n}";
+        $injector->replaceSegment($insert,$start,$end,true);
+        $newContent = file_get_contents($this->files_tmp.'/Foo.php');
+        $expect = "public function test(){\n        return true;\n    }";
+        $this->assertEquals(substr($originalContent,0,$start).$expect.substr($originalContent,$end),$newContent);
+        
     }
 
     public function testInsertAt(){
@@ -488,6 +585,39 @@ class StackTest extends PHPUnit_Framework_TestCase
         $find = 'public function hello(){';
         $this->assertFalse($injector->contains($find,false),'Fails to find function hello while out of bound');
     }
+
+    public function testReplace(){
+        $originalContent = file_get_contents($this->files_source.'/Foo.php');
+
+        preg_match('/public function hello\(\)\{[^}]*\}/', $originalContent, $matches, PREG_OFFSET_CAPTURE);
+        $start = $matches[0][1];
+        $end = $matches[0][1] + strlen($matches[0][0]);
+
+        $injector = new Injector($this->files_tmp.'/Foo.php',$start,$end);
+        $insert = 'Lorem Ipsum';
+        $injector->replace($insert,false);
+        $newContent = file_get_contents($this->files_tmp.'/Foo.php');
+        $this->assertEquals(substr($originalContent,0,$start).$insert.substr($originalContent,$end),$newContent);
+
+        $this->resetTestFiles();
+
+        $injector = new Injector($this->files_tmp.'/Foo.php',$start,$end);
+        $insert = "public function test(){\n    return true;\n}";
+        $injector->replace($insert,false);
+        $newContent = file_get_contents($this->files_tmp.'/Foo.php');
+        $this->assertEquals(substr($originalContent,0,$start).$insert.substr($originalContent,$end),$newContent);
+
+        $this->resetTestFiles();
+
+        $injector = new Injector($this->files_tmp.'/Foo.php',$start,$end);
+        $insert = "public function test(){\n    return true;\n}";
+        $injector->replace($insert,true);
+        $newContent = file_get_contents($this->files_tmp.'/Foo.php');
+        $expect = "public function test(){\n        return true;\n    }";
+        $this->assertEquals(substr($originalContent,0,$start).$expect.substr($originalContent,$end),$newContent);
+        
+    }
+
 
 
     public function testPrependOnce(){
