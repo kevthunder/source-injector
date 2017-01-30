@@ -2,12 +2,16 @@
 namespace Kevthunder\SourceInjector;
 
 
+use Kevthunder\SourceInjector\Source\FileSource;
+use Kevthunder\SourceInjector\Source\StringSource;
+use Kevthunder\SourceInjector\Source\ISource;
+
 class Injector{
 
     /**
-     * @var string
+     * @var ISource
      */
-    protected $fileName;
+    protected $source;
 
     /**
      * @var int
@@ -18,22 +22,55 @@ class Injector{
      * @var int
      */
     protected $end;
+    
+    public static $detectedSources = array(
+        FileSource::class,
+        StringSource::class
+    );
 
     /**
      *
-     * @param string $fileName
+     * @param $source
      * @param int    $start
      * @param int    $end
      */
-    public function __construct($fileName,$start = 0,$end = 0)
+    public function __construct($source,$start = 0,$end = 0)
     {
-        $this->fileName = $fileName;
+        $this->source = $this->detectSource($source);
         $this->start = $start;
         $this->end = $end;
     }
 
+    protected function getDetectedSources()
+    {
+        return self::$detectedSources;
+    }
+
+    /**
+     * @param $input
+     * @return ISource
+     */
+    protected function detectSource($input){
+        if($input instanceof ISource){
+            return $input;
+        }
+        foreach ($this->getDetectedSources() as $sourceClass) {
+            if (call_user_func("$sourceClass::detect", $input)) {
+                return new $sourceClass($input);
+            }
+        }
+        throw(new \InvalidArgumentException('Could not find a source handler for fist argument of injector'));
+    }
+
+    public function getSource(){
+        return $this->source;
+    }
+    
     public function getFileName(){
-        return $this->fileName;
+        if (method_exists($this->source, 'getFileName')) {
+            return $this->source->getFileName();
+        }
+        return null;
     }
     public function getStart(){
         return $this->start;
@@ -46,7 +83,7 @@ class Injector{
         if($end > 0) {
             return $end;
         }else{
-            return filesize($this->fileName) + $end;
+            return $this->source->getLength() + $end;
         }
     }
 
@@ -62,17 +99,15 @@ class Injector{
     }
     public function getContentAt($start,$end){
         if($start == 0 && $end == 0){
-            return file_get_contents($this->fileName);
+            return $this->source->getContent();
         }
-        $handle = fopen($this->fileName, 'r');
-        fseek($handle, $start);
-        $res = fread($handle, $this->getLengthAt($start,$end));
-        fclose($handle);
-        return $res;
+        
+        return $this->source->getSubString($start,$this->getLengthAt($start,$end));
     }
 
-    public function copy($start = null,$end = null){
-        return new Injector($this->fileName,is_null($start)?$this->start:$start,is_null($end)?$this->end:$end);
+    public function copy($start = null, $end = null)
+    {
+        return new Injector($this->source, is_null($start) ? $this->start : $start, is_null($end) ? $this->end : $end);
     }
 
     public function reset()
@@ -98,13 +133,17 @@ class Injector{
     public function failed(){
         return false;
     }
+    
+    public function fail(){
+        return new FailedInjector($this->source);
+    }
 
     public function afterFind($needle){
         $pos = strpos($this->getContent(),$needle);
         if($pos !== false){
             return $this->copy($this->start + $pos + strlen($needle));
         }else{
-            return new FailedInjector($this->fileName);
+            return $this->fail();
         }
     }
 
@@ -113,7 +152,7 @@ class Injector{
         if($pos !== false){
             return $this->copy(null,$this->start + $pos);
         }else{
-            return new FailedInjector($this->fileName);
+            return $this->fail();
         }
     }
 
@@ -122,7 +161,7 @@ class Injector{
         if($pos !== false){
             return $this->copy($this->start + $pos + strlen($needle));
         }else{
-            return new FailedInjector($this->fileName);
+            return $this->fail();
         }
     }
     public function afterNextLine(){
@@ -133,7 +172,7 @@ class Injector{
         if(preg_match($pattern, $this->getContent(), $matches, PREG_OFFSET_CAPTURE)){
             return $this->copy($this->start + $matches[0][1] + strlen($matches[0][0]));
         }else{
-            return new FailedInjector($this->fileName);
+            return $this->fail();
         }
     }
 
@@ -146,7 +185,7 @@ class Injector{
         if($lastPos){
             return $this->copy($this->start + $lastPos);
         }else{
-            return new FailedInjector($this->fileName);
+            return $this->fail();
         }
     }
 
@@ -158,7 +197,7 @@ class Injector{
             if($pos !== false) {
                 return $this->copy($this->start + $pos,$this->start + $pos + strlen($content));
             }else{
-                return new FailedInjector($this->fileName);
+                return $this->fail();
             }
         }
     }
@@ -167,7 +206,7 @@ class Injector{
         if(preg_match($pattern, $this->getContent(), $matches, PREG_OFFSET_CAPTURE)){
             return $this->copy($this->start + $matches[0][1],$this->start + $matches[0][1] + strlen($matches[0][0]));
         }else{
-            return new FailedInjector($this->fileName);
+            return $this->fail();
         }
     }
 
@@ -214,8 +253,8 @@ class Injector{
         if($applyIndent){
             $content = $this->applyIndentOf($content,$start);
         }
-        $all = file_get_contents($this->fileName);
-        file_put_contents($this->fileName,substr($all,0,$start).$content.substr($all,$end));
+        $all = $this->source->getContent();
+        $this->source->setContent(substr($all, 0, $start) . $content . substr($all, $end));
         return $this->copy(null,$this->end + strlen($content) - $end + $start);
     }
 
@@ -237,7 +276,7 @@ class Injector{
 
     public function getIndentAt($pos)
     {
-        $all = file_get_contents($this->fileName);
+        $all = $this->source->getContent();
         if(preg_match('/([ \t]*)[^\n]*[\r\n]+$/',substr($all,0,$pos+1),$match)) {
             return $match[1];
         }else{
@@ -249,6 +288,12 @@ class Injector{
             }
         }
     }
+    
+    public function getAllContent(){
+        return $this->source->getContent();
+    }
+    
+    
     public function applyIndentOf($content,$pos){
         $onNewLine = $this->getContentAt($pos-1,$pos) == "\n";
         $indent = $this->getIndentAt($pos);

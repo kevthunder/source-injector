@@ -13,7 +13,8 @@
     "require": {},
     "autoload": {
         "psr-4": {
-            "Kevthunder\\SourceInjector\\": "src/"
+            "Kevthunder\\SourceInjector\\": "src/",
+            "Kevthunder\\SourceInjector\\Test\\Helper\\": "tests/_helper"
         }
     }
 }

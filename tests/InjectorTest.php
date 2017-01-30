@@ -1,7 +1,8 @@
 <?php
 use Kevthunder\SourceInjector\Injector;
+use Kevthunder\SourceInjector\Test\Helper\FileTestTrait;
 
-class StackTest extends PHPUnit_Framework_TestCase
+class InjectorTest extends PHPUnit_Framework_TestCase
 {
     /**
      * @var string
@@ -12,6 +13,8 @@ class StackTest extends PHPUnit_Framework_TestCase
      */
 	public $files_tmp;
 	
+    use FileTestTrait;
+    
 	protected function setUp()
     {
 		$this->files_source = __DIR__.'/_files';
@@ -24,21 +27,6 @@ class StackTest extends PHPUnit_Framework_TestCase
         $this->removeTestFiles();
     }
 
-    protected function copyTestFiles(){
-        foreach(scandir($this->files_source) as $filename){
-            if(!in_array($filename,['.','..'])) {
-                copy($this->files_source . '/' . $filename, $this->files_tmp . '/' . $filename);
-            }
-        }
-    }
-
-    protected function removeTestFiles(){
-        foreach(scandir($this->files_tmp) as $filename){
-            if(!in_array($filename,['.','..'])) {
-                unlink($this->files_tmp.'/'.$filename);
-            }
-        }
-    }
 
     protected function resetTestFiles(){
         $this->removeTestFiles();
@@ -134,6 +122,11 @@ class StackTest extends PHPUnit_Framework_TestCase
         $this->assertEquals($injector->getEnd(), $reseted->getEnd());
     }
 
+    public function testFail(){
+        $injector = new Injector($this->files_tmp.'/Foo.php');
+        $copy = $injector->fail();
+        $this->assertTrue($copy->failed());
+    }
 
     public function testAfter(){
         $injector = new Injector($this->files_tmp.'/Foo.php',10,20);
