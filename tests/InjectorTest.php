@@ -215,6 +215,27 @@ class InjectorTest extends PHPUnit_Framework_TestCase
         $copy = $injector->afterFindLast($find);
         $this->assertTrue($copy->failed());
     }
+    
+    public function testBeforeFindLast(){
+        $originalContent = file_get_contents($this->files_source.'/Foo.php');
+
+        $injector = new Injector($this->files_tmp.'/Foo.php');
+        $find = 'public function';
+        $copy = $injector->beforeFindLast($find);
+        $this->assertFalse($copy->failed());
+        $pos = strrpos($originalContent,$find);
+        $this->assertEquals($pos, $copy->getEnd());
+
+        $injector = new Injector($this->files_tmp.'/Foo.php',5,$pos);
+        $copy = $injector->beforeFindLast($find);
+        $this->assertFalse($copy->failed());
+        $this->assertEquals(strrpos(substr($originalContent,0,$pos),$find), $copy->getEnd());
+
+        $injector = new Injector($this->files_tmp.'/Foo.php');
+        $find = 'non-existing text';
+        $copy = $injector->beforeFindLast($find);
+        $this->assertTrue($copy->failed());
+    }
 
     public function testAfterNextLine(){
         $originalContent = file_get_contents($this->files_source.'/Foo.php');

@@ -164,6 +164,17 @@ class Injector{
             return $this->fail();
         }
     }
+
+    public function beforeFindLast($needle){
+        $pos = strrpos($this->getContent(),$needle);
+        if($pos !== false){
+            return $this->copy(null, $this->start + $pos);
+        }else{
+            return $this->fail();
+        }
+    }
+    
+    
     public function afterNextLine(){
         return $this->afterFind("\n");
     }
