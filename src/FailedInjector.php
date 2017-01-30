@@ -14,11 +14,15 @@ class FailedInjector extends Injector{
     }
 
     public function copy($start = null,$end = null){
-        return new FailedInjector($this->fileName);
+        return new FailedInjector($this->source);
     }
 
     public function failed(){
         return true;
+    }
+
+    public function replaceSegment($content, $start, $end, $applyIndent = true){
+        return $this;
     }
 
 }

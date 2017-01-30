@@ -112,7 +112,7 @@ class Injector{
 
     public function reset()
     {
-        return $this->copy(0,0);
+        return new Injector($this->source,0,0);
     }
 
     public function after($pos)

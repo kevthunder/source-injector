@@ -120,6 +120,12 @@ class InjectorTest extends PHPUnit_Framework_TestCase
 
         $this->assertEquals($injector->getStart(), $reseted->getStart());
         $this->assertEquals($injector->getEnd(), $reseted->getEnd());
+
+        $copy = $injector->fail();
+        $reseted = $copy->reset();
+
+        $this->assertTrue($copy->failed());
+        $this->assertFalse($reseted->failed());
     }
 
     public function testFail(){
@@ -424,6 +430,15 @@ class InjectorTest extends PHPUnit_Framework_TestCase
         $expect = "public function test(){\n        return true;\n    }";
         $this->assertEquals(substr($originalContent,0,$start).$expect.substr($originalContent,$end),$newContent);
         
+        $this->resetTestFiles();
+        
+        $injector = new Injector($this->files_tmp.'/Foo.php');
+        $insert = 'Lorem Ipsum';
+        $copy = $injector->fail()->replaceSegment($insert,$start,$end,false);
+        $newContent = file_get_contents($this->files_tmp.'/Foo.php');
+        $this->assertTrue($copy->failed());
+        $this->assertNotEquals(substr($originalContent,0,$start).$insert.substr($originalContent,$end),$newContent);
+        $this->assertEquals($originalContent,$newContent);
     }
 
     public function testInsertAt(){
@@ -577,6 +592,16 @@ class InjectorTest extends PHPUnit_Framework_TestCase
         $newContent = file_get_contents($this->files_tmp.'/Foo.php');
         $insert = "        // Lorem Ipsum\n        // Dolor";
         $this->assertEquals($insert,substr($newContent,$pos,strlen($insert)));
+
+        $this->resetTestFiles();
+
+        $injector = new Injector($this->files_tmp.'/Foo.php',0,10);
+        $insert = 'Lorem Ipsum';
+        $copy = $injector->fail()->append($insert);
+        $this->assertTrue($copy->failed());
+        $this->assertFileEquals($this->files_source.'/Foo.php',$this->files_tmp.'/Foo.php');
+        $newContent = file_get_contents($this->files_tmp.'/Foo.php');
+        $this->assertNotEquals($insert,substr($newContent,10,strlen($insert)),'With positive end');
     }
 
     public function testContains(){
