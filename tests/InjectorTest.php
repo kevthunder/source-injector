@@ -149,6 +149,23 @@ class InjectorTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(10, $copy->getStart());
         $this->assertEquals(25, $copy->getEnd());
     }
+
+    public function testOffsetStart(){
+        $injector = new Injector($this->files_tmp.'/Foo.php',10,20);
+
+        $copy = $injector->offsetStart(-5);
+        $this->assertEquals(5, $copy->getStart());
+        $this->assertEquals(20, $copy->getEnd());
+    }
+
+    public function testOffsetEnd(){
+        $injector = new Injector($this->files_tmp.'/Foo.php',10,20);
+
+        $copy = $injector->offsetEnd(5);
+        $this->assertEquals(10, $copy->getStart());
+        $this->assertEquals(25, $copy->getEnd());
+    }
+    
     public function testBetween(){
         $injector = new Injector($this->files_tmp.'/Foo.php',10,20);
 

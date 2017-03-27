@@ -104,7 +104,7 @@ class Injector{
         
         return $this->source->getSubString($start,$this->getLengthAt($start,$end));
     }
-
+    
     public function copy($start = null, $end = null)
     {
         return new Injector($this->source, is_null($start) ? $this->start : $start, is_null($end) ? $this->end : $end);
@@ -123,6 +123,16 @@ class Injector{
     public function before($pos)
     {
         return $this->copy(null,$pos);
+    }
+
+    public function offsetStart($nb)
+    {
+        return $this->copy($this->start + $nb);
+    }
+    
+    public function offsetEnd($nb)
+    {
+        return $this->copy(null, $this->end + $nb);
     }
 
     public function between($start,$end)
