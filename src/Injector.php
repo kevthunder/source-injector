@@ -125,14 +125,19 @@ class Injector{
         return $this->copy(null,$pos);
     }
 
-    public function offsetStart($nb)
+    public function offset($offsetStart, $offsetEnd)
     {
-        return $this->copy($this->start + $nb);
+        return $this->copy($this->start + $offsetStart, $this->end + $offsetEnd);
     }
     
-    public function offsetEnd($nb)
+    public function offsetStart($offset)
     {
-        return $this->copy(null, $this->end + $nb);
+        return $this->copy($this->start + $offset);
+    }
+    
+    public function offsetEnd($offset)
+    {
+        return $this->copy(null, $this->end + $offset);
     }
 
     public function between($start,$end)
